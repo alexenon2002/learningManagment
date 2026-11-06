@@ -1,9 +1,9 @@
 package com.example.learning_management.mapper;
 
 
-import com.example.learning_management.dto.StudentCreateRequest;
-import com.example.learning_management.dto.StudentResponse;
-import com.example.learning_management.dto.StudentUpdateRequest;
+import com.example.learning_management.dto.student.StudentCreateRequest;
+import com.example.learning_management.dto.student.StudentResponse;
+import com.example.learning_management.dto.student.StudentUpdateRequest;
 import com.example.learning_management.entity.Student;
 import com.example.learning_management.entity.StudyGroup;
 import org.mapstruct.Mapper;

@@ -1,4 +1,4 @@
-package com.example.learning_management.exception;
+package com.example.learning_management.exception.course;
 
 public class CourseHasGroupsException extends RuntimeException {
     public CourseHasGroupsException(long courseId) {

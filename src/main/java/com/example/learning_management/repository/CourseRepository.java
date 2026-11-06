@@ -1,12 +1,15 @@
 package com.example.learning_management.repository;
 
 import com.example.learning_management.entity.Course;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface CourseRepository extends JpaRepository<Course, Long> {
-    public boolean existsByTeacher_Id(Long teacherId);
+import java.util.Optional;
 
-    public Page<Course> findByGroups_Id(Long groupId, Pageable pageable);
+public interface CourseRepository extends JpaRepository<Course, Long> , JpaSpecificationExecutor<Course> {
+
+
+     Optional<Course> findByIdAndDeletedAtIsNull(Long id);
+
+     boolean existsByTeacher_IdAndDeletedAtIsNull(Long teacherId);
 }

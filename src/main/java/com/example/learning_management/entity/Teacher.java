@@ -4,17 +4,13 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "teachers")
-public class Teacher {
+public class Teacher extends AuditableEntity{
 
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "surname", nullable = false)
     private String surname;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     protected Teacher() {
     }
@@ -40,7 +36,4 @@ public class Teacher {
         this.surname = surname;
     }
 
-    public Long getId() {
-        return id;
-    }
 }

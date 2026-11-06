@@ -1,4 +1,4 @@
-package com.example.learning_management.dto;
+package com.example.learning_management.dto.student;
 
 import java.util.Set;
 

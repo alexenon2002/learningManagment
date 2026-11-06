@@ -7,17 +7,13 @@ import java.util.Set;
 
 @Entity
 @Table(name = "students")
-public class Student {
+public class Student extends AuditableEntity{
 
     @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "surname", nullable = false)
     private String surname;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     protected Student() {
     }
@@ -41,10 +37,6 @@ public class Student {
 
     public void setSurname(String surname) {
         this.surname = surname;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     @ManyToMany

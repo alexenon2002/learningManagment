@@ -1,4 +1,4 @@
-package com.example.learning_management.dto;
+package com.example.learning_management.dto.course;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

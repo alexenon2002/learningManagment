@@ -1,20 +1,25 @@
 package com.example.learning_management.service;
 
-import com.example.learning_management.dto.StudyGroupCreateRequest;
-import com.example.learning_management.dto.StudyGroupUpdateRequest;
+import com.example.learning_management.dto.study_group.StudyGroupCreateRequest;
+import com.example.learning_management.dto.study_group.StudyGroupUpdateRequest;
 import com.example.learning_management.entity.Course;
 import com.example.learning_management.entity.StudyGroup;
-import com.example.learning_management.exception.StudyGroupHasStudentsException;
+import com.example.learning_management.exception.ResourceNotFoundException;
+import com.example.learning_management.exception.schedule.ScheduleConflictException;
+import com.example.learning_management.exception.study_group.StudyGroupHasStudentsException;
 import com.example.learning_management.mapper.StudyGroupMapper;
 import com.example.learning_management.repository.CourseRepository;
+import com.example.learning_management.repository.ScheduleRepository;
 import com.example.learning_management.repository.StudentRepository;
 import com.example.learning_management.repository.StudyGroupRepository;
+import com.example.learning_management.specification.CourseSpecification;
+import com.example.learning_management.specification.StudyGroupSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 
 @Service
 public class StudyGroupService {
@@ -23,102 +28,127 @@ public class StudyGroupService {
     private final StudyGroupMapper studyGroupMapper;
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
+    private final ScheduleRepository scheduleRepository;
 
     public StudyGroupService(StudyGroupRepository studyGroupRepository,
                              StudyGroupMapper studyGroupMapper,
                              StudentRepository studentRepository,
-                             CourseRepository courseRepository) {
+                             CourseRepository courseRepository,
+                             ScheduleRepository scheduleRepository) {
         this.studyGroupRepository = studyGroupRepository;
         this.studyGroupMapper = studyGroupMapper;
         this.studentRepository = studentRepository;
         this.courseRepository = courseRepository;
+        this.scheduleRepository = scheduleRepository;
     }
 
     @Transactional
     public StudyGroup create(StudyGroupCreateRequest request) {
-        StudyGroup studyGroup = studyGroupMapper.toEntity(request);
-        StudyGroup savedStudyGroup = studyGroupRepository.save(studyGroup);
+        StudyGroup group = studyGroupMapper.toEntity(request);
+        StudyGroup savedStudyGroup = studyGroupRepository.save(group);
         return savedStudyGroup;
     }
 
-    public Optional<StudyGroup> findById(Long id) {
-        return studyGroupRepository.findById(id);
+    @Transactional(readOnly = true)
+    public StudyGroup findById(Long id) {
+        return studyGroupRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + id + " не найдена."
+                ));
     }
 
     @Transactional
-    public Optional<StudyGroup> update(Long id, StudyGroupUpdateRequest request) {
-        Optional<StudyGroup> result = studyGroupRepository.findById(id);
-        if (result.isEmpty()) {
-            return result;
-        } else {
-            StudyGroup updatedStudyGroup = result.get();
-            studyGroupMapper.updateEntity(request, updatedStudyGroup);
-        }
-        return result;
+    public StudyGroup update(Long id, StudyGroupUpdateRequest request) {
+        StudyGroup group = studyGroupRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + id + " не найдена."
+                ));
+        studyGroupMapper.updateEntity(request, group);
+        return group;
     }
 
     @Transactional
-    public boolean delete(Long id) {
-        Optional<StudyGroup> result = studyGroupRepository.findById(id);
-        if (result.isEmpty()) {
-            return false;
-        } else {
-            StudyGroup studyGroup = result.get();
-            if (studentRepository.existsByGroups_Id(id)) {
-                throw new StudyGroupHasStudentsException(id);
-            }
-            studyGroupRepository.delete(studyGroup);
+    public void delete(Long id) {
+        StudyGroup group = studyGroupRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + id + " не найдена."
+                ));
+        if (studentRepository.existsByGroups_IdAndDeletedAtIsNull(id)) {
+            throw new StudyGroupHasStudentsException(id);
         }
-        return true;
+        boolean hasActiveSchedules =
+                scheduleRepository.existsByGroup_IdAndDeletedAtIsNull(id);
+        if (hasActiveSchedules) {
+            throw new ScheduleConflictException(
+                    "Нельзя удалить группу: есть активные занятия."
+            );
+        }
+        group.markDeleted();
     }
 
     @Transactional(readOnly = true)
-    public Page<StudyGroup> findAll(Pageable pageable) {
-        return studyGroupRepository.findAll(pageable);
+    public Page<StudyGroup> findAll(String name, Long courseId, Pageable pageable) {
+        Specification<StudyGroup> specification = StudyGroupSpecification.isActive();
+        if (name != null && !name.isBlank()) {
+            specification = specification.and(StudyGroupSpecification.nameContains(name));
+        }
+        if (courseId != null) {
+            specification = specification.and(StudyGroupSpecification.inCourse(courseId));
+        }
+        return studyGroupRepository.findAll(specification, pageable);
     }
 
     @Transactional
-    public boolean addCourse(Long groupId, Long courseId) {
-        Optional<StudyGroup> groupResult = studyGroupRepository.findById(groupId);
-        if (groupResult.isEmpty()) {
-            return false;
-        }
-        Optional<Course> courseResult = courseRepository.findById(courseId);
-        if (courseResult.isEmpty()) {
-            return false;
-        }
-        StudyGroup group = groupResult.get();
-        Course course = courseResult.get();
+    public void addCourse(Long groupId, Long courseId) {
+        StudyGroup group = studyGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + groupId + " не найдена."
+                ));
+        Course course = courseRepository.findByIdAndDeletedAtIsNull(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Курс с id " + courseId + " не найден."
+                ));
         group.getCourses().add(course);
         course.getGroups().add(group);
-        return true;
     }
 
     @Transactional
-    public boolean removeCourse(Long groupId, Long courseId) {
-        Optional<StudyGroup> groupResult = studyGroupRepository.findById(groupId);
-        if (groupResult.isEmpty()) {
-            return false;
+    public void removeCourse(Long groupId, Long courseId) {
+        StudyGroup group = studyGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + groupId + " не найдена."
+                ));
+        Course course = courseRepository.findByIdAndDeletedAtIsNull(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Курс с id " + courseId + " не найден."
+                ));
+        boolean hasActiveSchedules =
+                scheduleRepository.existsByGroup_IdAndCourse_IdAndDeletedAtIsNull(
+                        groupId, courseId
+                );
+        if (hasActiveSchedules) {
+            throw new ScheduleConflictException(
+                    "Нельзя снять группу с курса: для этой пары есть активные занятия."
+            );
         }
-        Optional<Course> courseResult = courseRepository.findById(courseId);
-        if (courseResult.isEmpty()) {
-            return false;
-        }
-        StudyGroup group = groupResult.get();
-        Course course = courseResult.get();
         group.getCourses().remove(course);
         course.getGroups().remove(group);
-        return true;
     }
 
     @Transactional(readOnly = true)
-    public Optional<Page<Course>> findCourses(Long groupId, Pageable pageable) {
-        boolean groupExists = studyGroupRepository.existsById(groupId);
-        if (!groupExists) {
-            return Optional.empty();
-        } else {
-            Page<Course> courses = courseRepository.findByGroups_Id(groupId, pageable);
-            return Optional.of(courses);
+    public Page<Course> findCourses(Long groupId, String name, Long teacherId, Pageable pageable) {
+        StudyGroup group = studyGroupRepository.findByIdAndDeletedAtIsNull(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Группа с id " + groupId + " не найдена."
+                ));
+        Specification<Course> specification = CourseSpecification.isActive()
+                .and(CourseSpecification.inGroup(groupId));
+        if (name != null && !name.isBlank()) {
+            specification = specification.and(CourseSpecification.nameContains(name));
         }
+        if (teacherId != null) {
+            specification = specification.and(CourseSpecification.teacherIdEquals(teacherId));
+        }
+        return courseRepository.findAll(specification, pageable);
     }
 }

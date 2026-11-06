@@ -8,14 +8,10 @@ import java.util.Set;
 
 @Entity
 @Table(name = "study_groups")
-public class StudyGroup {
+public class StudyGroup extends  AuditableEntity{
 
     @Column(name = "name", nullable = false)
     private String name;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     @ManyToMany(mappedBy = "groups")
     private Set<Student> students = new HashSet<>();
@@ -49,7 +45,4 @@ public class StudyGroup {
         this.name = name;
     }
 
-    public Long getId() {
-        return id;
-    }
 }

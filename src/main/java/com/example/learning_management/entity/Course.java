@@ -7,11 +7,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "courses")
-public class Course {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private  Long id;
+public class Course extends AuditableEntity{
 
     @Column(name = "name",nullable = false)
     private  String name;
@@ -36,10 +32,6 @@ public class Course {
         this.name = name;
         this.description = description;
         this.teacher = teacher;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public String getName() {
