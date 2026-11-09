@@ -9,7 +9,7 @@ import java.util.Locale;
 public class StudentSpecification {
     public static Specification<Student> isActive() {
         return (root, query, cb)
-                -> cb.isNull(root.get("deletedAt"));
+                -> cb.isFalse(root.get("deleted"));
     }
 
     public static Specification<Student> nameContains(String name) {

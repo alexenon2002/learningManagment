@@ -4,14 +4,9 @@ import com.example.learning_management.dto.course.CourseResponse;
 import com.example.learning_management.dto.study_group.StudyGroupCreateRequest;
 import com.example.learning_management.dto.study_group.StudyGroupResponse;
 import com.example.learning_management.dto.study_group.StudyGroupUpdateRequest;
-import com.example.learning_management.entity.Course;
-import com.example.learning_management.entity.StudyGroup;
-import com.example.learning_management.mapper.CourseMapper;
-import com.example.learning_management.mapper.StudyGroupMapper;
 import com.example.learning_management.service.StudyGroupService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -35,16 +30,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RequestMapping("/study_groups")
 public class StudyGroupController {
 
-    private final StudyGroupMapper studyGroupMapper;
     private final StudyGroupService studyGroupService;
-    private final CourseMapper courseMapper;
 
-    public StudyGroupController(StudyGroupMapper studyGroupMapper,
-                                StudyGroupService studyGroupService,
-                                CourseMapper courseMapper) {
-        this.studyGroupMapper = studyGroupMapper;
+    public StudyGroupController(StudyGroupService studyGroupService) {
         this.studyGroupService = studyGroupService;
-        this.courseMapper = courseMapper;
     }
 
     @PostMapping
@@ -61,8 +50,7 @@ public class StudyGroupController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     public StudyGroupResponse create(@Valid @RequestBody StudyGroupCreateRequest request) {
-        StudyGroup group = studyGroupService.create(request);
-        return studyGroupMapper.toResponse(group);
+        return studyGroupService.create(request);
     }
 
     @GetMapping("/{id}")
@@ -81,8 +69,7 @@ public class StudyGroupController {
             )
     })
     public ResponseEntity<StudyGroupResponse> getById(@PathVariable Long id) {
-        StudyGroup group = studyGroupService.findById(id);
-        return ResponseEntity.ok(studyGroupMapper.toResponse(group));
+        return ResponseEntity.ok(studyGroupService.findById(id));
     }
 
     @PutMapping("/{id}")
@@ -105,8 +92,7 @@ public class StudyGroupController {
             )
     })
     public ResponseEntity<StudyGroupResponse> update(@PathVariable Long id, @Valid @RequestBody StudyGroupUpdateRequest request) {
-        StudyGroup group = studyGroupService.update(id, request);
-        return ResponseEntity.ok(studyGroupMapper.toResponse(group));
+        return ResponseEntity.ok(studyGroupService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -152,10 +138,7 @@ public class StudyGroupController {
                                                   @RequestParam(name = "courseId", required = false) @Positive Long courseId,
                                                   @PageableDefault(size = 10, sort = "id")
                                                   Pageable pageable) {
-        Page<StudyGroup> studyGroups = studyGroupService.findAll(name, courseId, pageable);
-        Page<StudyGroupResponse> responsePage = studyGroups
-                .map(studyGroup -> studyGroupMapper.toResponse(studyGroup));
-        return new PagedModel<>(responsePage);
+        return new PagedModel<>(studyGroupService.findAll(name, courseId, pageable));
     }
 
     @PutMapping("/{groupId}/courses/{courseId}")
@@ -229,10 +212,9 @@ public class StudyGroupController {
             @RequestParam(name = "name", required = false) String name,
             @RequestParam(name = "teacherId", required = false) @Positive Long teacherId,
             @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        Page<Course> courses = studyGroupService.findCourses(groupId, name, teacherId, pageable);
-        Page<CourseResponse> responsePage = courses
-                .map(course -> courseMapper.toResponse(course));
-        PagedModel<CourseResponse> response = new PagedModel<>(responsePage);
+        PagedModel<CourseResponse> response = new PagedModel<>(
+                studyGroupService.findCourses(groupId, name, teacherId, pageable)
+        );
         return ResponseEntity.ok(response);
     }
 }

@@ -11,11 +11,11 @@ import java.util.Set;
 public interface StudyGroupRepository extends JpaRepository<StudyGroup, Long>, JpaSpecificationExecutor<StudyGroup> {
 
 
-    List<StudyGroup> findAllByIdInAndDeletedAtIsNull(Set<Long> groupIds);
+    List<StudyGroup> findAllByIdInAndDeletedFalse(Set<Long> groupIds);
 
-    Optional<StudyGroup> findByIdAndDeletedAtIsNull(Long id);
+    Optional<StudyGroup> findByIdAndDeletedFalse(Long id);
 
-    boolean existsByCourses_IdAndDeletedAtIsNull(Long courseId);
+    boolean existsByCourses_IdAndDeletedFalse(Long courseId);
 
-    boolean existsByIdAndCourses_IdAndDeletedAtIsNull(Long groupId, Long courseId);
+    boolean existsByIdAndCourses_IdAndDeletedFalse(Long groupId, Long courseId);
 }

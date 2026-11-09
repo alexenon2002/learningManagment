@@ -8,6 +8,7 @@ import com.example.learning_management.entity.Teacher;
 import com.example.learning_management.exception.course.CourseHasGroupsException;
 import com.example.learning_management.exception.ResourceNotFoundException;
 import com.example.learning_management.exception.schedule.ScheduleConflictException;
+import com.example.learning_management.lookup.CourseLookup;
 import com.example.learning_management.mapper.CourseMapper;
 import com.example.learning_management.repository.CourseRepository;
 import com.example.learning_management.repository.ScheduleRepository;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.learning_management.dto.course.CourseResponse;
 
 import static com.example.learning_management.specification.CourseSpecification.teacherIdEquals;
 
@@ -32,53 +34,52 @@ public class CourseService {
     private final CourseMapper courseMapper;
     private final StudyGroupRepository studyGroupRepository;
     private final ScheduleRepository scheduleRepository;
+    private final CourseLookup courseLookup;
 
     public CourseService(CourseRepository courseRepository,
                          TeacherRepository teacherRepository,
                          CourseMapper mapper,
                          StudyGroupRepository studyGroupRepository,
-                         ScheduleRepository scheduleRepository) {
+                         ScheduleRepository scheduleRepository,
+                         CourseLookup courseLookup) {
         this.courseRepository = courseRepository;
         this.teacherRepository = teacherRepository;
         this.courseMapper = mapper;
         this.studyGroupRepository = studyGroupRepository;
         this.scheduleRepository = scheduleRepository;
+        this.courseLookup = courseLookup;
     }
 
     @Transactional
-    public Course create(@NonNull CourseCreateRequest request) {
+    public CourseResponse create(@NonNull CourseCreateRequest request) {
         Teacher teacher =
-                teacherRepository.findByIdAndDeletedAtIsNull(request.teacherId())
+                teacherRepository.findByIdAndDeletedFalse(request.teacherId())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Преподаватель с id " + request.teacherId() + " не найден."
                         ));
         Course course = courseMapper.toEntity(request);
         course.setTeacher(teacher);
         Course savedCourse = courseRepository.save(course);
-        return savedCourse;
+        return courseMapper.toResponse(savedCourse);
     }
 
     @Transactional(readOnly = true)
-    public Course findById(Long id) {
-        return courseRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new ResourceNotFoundException(
-                "Курс с id " + id + " не найден."
-        ));
+    public CourseResponse findById(Long id) {
+        Course course = courseLookup.getActiveCourseOrThrow(id);
+        return courseMapper.toResponse(course);
     }
 
     @Transactional
-    public Course update(Long id, CourseUpdateRequest request) {
-        Course course = courseRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Курс с id " + id + " не найден."
-                ));
-        Teacher teacher = teacherRepository.findByIdAndDeletedAtIsNull(request.teacherId())
+    public CourseResponse update(Long id, @NonNull CourseUpdateRequest request) {
+        Course course = courseLookup.getActiveCourseOrThrow(id);
+        Teacher teacher = teacherRepository.findByIdAndDeletedFalse(request.teacherId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Преподаватель с id " + request.teacherId() + " не найден."
                 ));
         boolean teacherChanged =
                 !course.getTeacher().getId().equals(teacher.getId());
         boolean hasActiveSchedules =
-                scheduleRepository.existsByCourse_IdAndDeletedAtIsNull(id);
+                scheduleRepository.existsByCourse_IdAndDeletedFalse(id);
         if (teacherChanged && hasActiveSchedules) {
             throw new ScheduleConflictException(
                     "Нельзя изменить преподавателя курса: есть активные занятия."
@@ -86,21 +87,18 @@ public class CourseService {
         }
         courseMapper.updateEntity(request, course);
         course.setTeacher(teacher);
-        return course;
+        return courseMapper.toResponse(course);
     }
 
     @Transactional
     public void delete(Long id) {
-        Course course = courseRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Курс с id " + id + " не найден."
-                ));
-        boolean hasGroups = studyGroupRepository.existsByCourses_IdAndDeletedAtIsNull(id);
+        Course course = courseLookup.getActiveCourseOrThrow(id);
+        boolean hasGroups = studyGroupRepository.existsByCourses_IdAndDeletedFalse(id);
         if (hasGroups) {
             throw new CourseHasGroupsException(id);
         }
         boolean hasActiveSchedules =
-                scheduleRepository.existsByCourse_IdAndDeletedAtIsNull(id);
+                scheduleRepository.existsByCourse_IdAndDeletedFalse(id);
         if (hasActiveSchedules) {
             throw new ScheduleConflictException(
                     "Нельзя удалить курс: есть активные занятия."
@@ -110,7 +108,7 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Course> findAll(String name, Long teacherId, Pageable pageable) {
+    public Page<CourseResponse> findAll(String name, Long teacherId, Pageable pageable) {
         Specification<Course> specification = CourseSpecification.isActive();
         if (name != null && !name.isBlank()) {
             specification = specification.and(CourseSpecification.nameContains(name));
@@ -118,6 +116,7 @@ public class CourseService {
         if (teacherId != null) {
             specification = specification.and(teacherIdEquals(teacherId));
         }
-        return courseRepository.findAll(specification, pageable);
+        return courseRepository.findAll(specification, pageable)
+                .map(courseMapper::toResponse);
     }
 }

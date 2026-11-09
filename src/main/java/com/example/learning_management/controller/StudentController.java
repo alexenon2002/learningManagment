@@ -3,12 +3,9 @@ package com.example.learning_management.controller;
 import com.example.learning_management.dto.student.StudentCreateRequest;
 import com.example.learning_management.dto.student.StudentResponse;
 import com.example.learning_management.dto.student.StudentUpdateRequest;
-import com.example.learning_management.entity.Student;
-import com.example.learning_management.mapper.StudentMapper;
 import com.example.learning_management.service.StudentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -23,7 +20,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import java.util.Locale;
 
 @Tag(
         name = "Студенты",
@@ -35,11 +31,9 @@ import java.util.Locale;
 public class StudentController {
 
     private final StudentService studentService;
-    private final StudentMapper studentMapper;
 
-    public StudentController(StudentService studentService, StudentMapper studentMapper) {
+    public StudentController(StudentService studentService) {
         this.studentService = studentService;
-        this.studentMapper = studentMapper;
     }
 
     @PostMapping
@@ -61,11 +55,10 @@ public class StudentController {
                     )
             )
     })
-    public ResponseEntity<StudentResponse> create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public StudentResponse create(
             @Valid @RequestBody StudentCreateRequest request) {
-        Student student = studentService.create(request);
-        StudentResponse response = studentMapper.toResponse(student);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return studentService.create(request);
 
     }
 
@@ -85,9 +78,7 @@ public class StudentController {
             )
     })
     public ResponseEntity<StudentResponse> findById(@PathVariable Long id) {
-        Student student = studentService.findById(id);
-        StudentResponse response = studentMapper.toResponse(student);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(studentService.findById(id));
     }
 
     @PutMapping("/{id}")
@@ -111,9 +102,7 @@ public class StudentController {
     })
     public ResponseEntity<StudentResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody StudentUpdateRequest request) {
-        Student student = studentService.update(id, request);
-        StudentResponse response = studentMapper.toResponse(student);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(studentService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -152,8 +141,6 @@ public class StudentController {
                                                @RequestParam(name = "surname", required = false) String surname,
                                                @RequestParam(name = "groupId", required = false) @Positive Long groupId,
                                                @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        Page<Student> students = studentService.findAll(name, surname, groupId, pageable);
-        Page<StudentResponse> responsePage = students.map(student -> studentMapper.toResponse(student));
-        return new PagedModel<>(responsePage);
+        return new PagedModel<>(studentService.findAll(name, surname, groupId, pageable));
     }
 }

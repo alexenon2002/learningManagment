@@ -10,11 +10,13 @@ import com.example.learning_management.mapper.TeacherMapper;
 import com.example.learning_management.repository.CourseRepository;
 import com.example.learning_management.repository.TeacherRepository;
 import com.example.learning_management.specification.TeacherSpecifications;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.learning_management.dto.teacher.TeacherResponse;
 
 @Service
 public class TeacherService {
@@ -30,36 +32,35 @@ public class TeacherService {
     }
 
     @Transactional
-    public Teacher create(TeacherCreateRequest request) {
+    public TeacherResponse create(TeacherCreateRequest request) {
         Teacher teacher = teacherMapper.toEntity(request);
         Teacher savedTeacher = teacherRepository.save(teacher);
-        return savedTeacher;
+        return teacherMapper.toResponse(savedTeacher);
     }
 
-    @Transactional(readOnly = true)
-    public Teacher findById(Long id) {
-        return teacherRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Преподаватель с id " + id + " не найден."));
-    }
-
-    @Transactional
-    public Teacher update(Long id, TeacherUpdateRequest request) {
-        Teacher teacher = teacherRepository.findByIdAndDeletedAtIsNull(id)
+    private @NonNull Teacher getActiveTeacherOrThrow(Long id) {
+        return teacherRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Преподаватель с id " + id + " не найден."
                 ));
+    }
+
+    @Transactional(readOnly = true)
+    public TeacherResponse findById(Long id) {
+        return teacherMapper.toResponse(getActiveTeacherOrThrow(id));
+    }
+
+    @Transactional
+    public TeacherResponse update(Long id, TeacherUpdateRequest request) {
+        Teacher teacher = getActiveTeacherOrThrow(id);
         teacherMapper.updateEntity(request, teacher);
-        return teacher;
+        return teacherMapper.toResponse(teacher);
     }
 
     @Transactional
     public void delete(Long id) {
-        Teacher teacher = teacherRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Преподаватель с id " + id + " не найден."
-                ));
-        if (courseRepository.existsByTeacher_IdAndDeletedAtIsNull(id)) {
+        Teacher teacher = getActiveTeacherOrThrow(id);
+        if (courseRepository.existsByTeacher_IdAndDeletedFalse(id)) {
             throw new TeacherHasCoursesException(id);
         }
         teacher.markDeleted();
@@ -67,7 +68,7 @@ public class TeacherService {
 
 
     @Transactional(readOnly = true)
-    public Page<Teacher> findAll(String name, String surname, Pageable pageable) {
+    public Page<TeacherResponse> findAll(String name, String surname, Pageable pageable) {
         Specification<Teacher> specification = TeacherSpecifications.isActive();
         if (name != null && !name.isBlank()) {
             specification = specification.and(TeacherSpecifications.nameContains(name));
@@ -77,6 +78,7 @@ public class TeacherService {
                     TeacherSpecifications.surnameContains(surname)
             );
         }
-        return teacherRepository.findAll(specification, pageable);
+        return teacherRepository.findAll(specification, pageable)
+                .map(teacherMapper::toResponse);
     }
 }

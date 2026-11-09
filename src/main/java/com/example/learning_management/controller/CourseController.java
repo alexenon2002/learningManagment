@@ -3,8 +3,6 @@ package com.example.learning_management.controller;
 import com.example.learning_management.dto.course.CourseCreateRequest;
 import com.example.learning_management.dto.course.CourseResponse;
 import com.example.learning_management.dto.course.CourseUpdateRequest;
-import com.example.learning_management.entity.Course;
-import com.example.learning_management.mapper.CourseMapper;
 import com.example.learning_management.service.CourseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -32,11 +30,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RequestMapping("/courses")
 public class CourseController {
     private final CourseService courseService;
-    private final CourseMapper courseMapper;
 
-    public CourseController(CourseService courseService, CourseMapper courseMapper) {
+    public CourseController(CourseService courseService) {
         this.courseService = courseService;
-        this.courseMapper = courseMapper;
     }
 
     @PostMapping
@@ -59,8 +55,7 @@ public class CourseController {
             )
     })
     public ResponseEntity<CourseResponse> create(@Valid @RequestBody CourseCreateRequest request) {
-        Course result = courseService.create(request);
-        CourseResponse response = courseMapper.toResponse(result);
+        CourseResponse response = courseService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -80,8 +75,7 @@ public class CourseController {
             )
     })
     public ResponseEntity<CourseResponse> getById(@PathVariable Long id) {
-        Course course = courseService.findById(id);
-        CourseResponse response = courseMapper.toResponse(course);
+        CourseResponse response = courseService.findById(id);
         return ResponseEntity.ok().body(response);
     }
 
@@ -114,8 +108,8 @@ public class CourseController {
     })
     public ResponseEntity<CourseResponse> update(@PathVariable Long id,
                                                  @Valid @RequestBody CourseUpdateRequest request) {
-        Course course = courseService.update(id, request);
-        return ResponseEntity.ok().body(courseMapper.toResponse(course));
+        CourseResponse response = courseService.update(id, request);
+        return ResponseEntity.ok().body(response);
     }
 
 
@@ -161,8 +155,7 @@ public class CourseController {
     public PagedModel<CourseResponse> findAll(@RequestParam(name = "name", required = false) String name,
                                               @RequestParam(name = "teacherId", required = false) @Positive Long teacherId,
                                               @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        Page<Course> courses = courseService.findAll(name, teacherId, pageable);
-        Page<CourseResponse> responsePage = courses.map(course -> courseMapper.toResponse(course));
+        Page<CourseResponse> responsePage = courseService.findAll(name, teacherId, pageable);
         return new PagedModel<>(responsePage);
     }
 }

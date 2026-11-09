@@ -8,8 +8,8 @@ import java.util.Optional;
 
 public interface StudentRepository extends JpaRepository<Student, Long> , JpaSpecificationExecutor<Student> {
 
-     boolean existsByGroups_IdAndDeletedAtIsNull(Long groupId);
+     boolean existsByGroups_IdAndDeletedFalse(Long groupId);
 
-     Optional<Student> findByIdAndDeletedAtIsNull(Long id);
+     Optional<Student> findByIdAndDeletedFalse(Long id);
 
 }

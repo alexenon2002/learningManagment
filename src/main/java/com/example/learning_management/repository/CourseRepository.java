@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface CourseRepository extends JpaRepository<Course, Long> , JpaSpecificationExecutor<Course> {
 
 
-     Optional<Course> findByIdAndDeletedAtIsNull(Long id);
+     Optional<Course> findByIdAndDeletedFalse(Long id);
 
-     boolean existsByTeacher_IdAndDeletedAtIsNull(Long teacherId);
+     boolean existsByTeacher_IdAndDeletedFalse(Long teacherId);
 }

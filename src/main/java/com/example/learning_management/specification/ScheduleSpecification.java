@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 public class ScheduleSpecification {
     public static Specification<Schedule> isActive() {
         return (root, query, cb)
-                -> cb.isNull(root.get("deletedAt"));
+                -> cb.isFalse(root.get("deleted"));
     }
 
     public static Specification<Schedule> groupIdEquals(Long groupId) {

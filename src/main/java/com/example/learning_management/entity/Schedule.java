@@ -1,11 +1,15 @@
 package com.example.learning_management.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "schedules")
+@Getter
+@Setter
 public class Schedule extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -34,43 +38,4 @@ public class Schedule extends AuditableEntity {
         this.endsAt = endsAt;
     }
 
-    public Teacher getTeacher() {
-        return teacher;
-    }
-
-    public void setTeacher(Teacher teacher) {
-        this.teacher = teacher;
-    }
-
-    public StudyGroup getGroup() {
-        return group;
-    }
-
-    public void setGroup(StudyGroup group) {
-        this.group = group;
-    }
-
-    public Course getCourse() {
-        return course;
-    }
-
-    public void setCourse(Course course) {
-        this.course = course;
-    }
-
-    public LocalDateTime getStartsAt() {
-        return startsAt;
-    }
-
-    public void setStartsAt(LocalDateTime startsAt) {
-        this.startsAt = startsAt;
-    }
-
-    public LocalDateTime getEndsAt() {
-        return endsAt;
-    }
-
-    public void setEndsAt(LocalDateTime endsAt) {
-        this.endsAt = endsAt;
-    }
 }

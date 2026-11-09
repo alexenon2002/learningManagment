@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface TeacherRepository extends JpaRepository<Teacher, Long>, JpaSpecificationExecutor<Teacher> {
 
-     Optional<Teacher> findByIdAndDeletedAtIsNull(Long id);
+     Optional<Teacher> findByIdAndDeletedFalse(Long id);
 
 }

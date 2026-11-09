@@ -1,11 +1,16 @@
 package com.example.learning_management.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @MappedSuperclass
+@Getter
+@Setter
 public abstract class AuditableEntity {
 
     @Id
@@ -21,6 +26,10 @@ public abstract class AuditableEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "is_deleted", nullable = false)
+    @Setter(AccessLevel.NONE)
+    private boolean deleted;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
@@ -35,22 +44,6 @@ public abstract class AuditableEntity {
 
     public void markDeleted() {
         deletedAt = LocalDateTime.now(ZoneOffset.UTC);
+        deleted = true;
     }
-
-    public Long getId() {
-        return id;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public LocalDateTime getDeletedAt() {
-        return deletedAt;
-    }
-
 }

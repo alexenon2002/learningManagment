@@ -4,12 +4,9 @@ package com.example.learning_management.controller;
 import com.example.learning_management.dto.schedule.ScheduleCreateRequest;
 import com.example.learning_management.dto.schedule.ScheduleResponse;
 import com.example.learning_management.dto.schedule.ScheduleUpdateRequest;
-import com.example.learning_management.entity.Schedule;
-import com.example.learning_management.mapper.ScheduleMapper;
 import com.example.learning_management.service.ScheduleService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -34,11 +31,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
-    private final ScheduleMapper scheduleMapper;
 
-    public ScheduleController(ScheduleService scheduleService, ScheduleMapper scheduleMapper) {
+    public ScheduleController(ScheduleService scheduleService) {
         this.scheduleService = scheduleService;
-        this.scheduleMapper = scheduleMapper;
     }
 
     @PostMapping
@@ -66,10 +61,9 @@ public class ScheduleController {
             )
     }
     )
-    public ResponseEntity<ScheduleResponse> create(@Valid @RequestBody ScheduleCreateRequest request) {
-        Schedule schedule = scheduleService.create(request);
-        ScheduleResponse response = scheduleMapper.toResponse(schedule);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @ResponseStatus(HttpStatus.CREATED)
+    public ScheduleResponse create(@Valid @RequestBody ScheduleCreateRequest request) {
+        return scheduleService.create(request);
     }
 
     @GetMapping("/{id}")
@@ -88,9 +82,7 @@ public class ScheduleController {
             )
     })
     public ResponseEntity<ScheduleResponse> getById(@PathVariable Long id) {
-        Schedule schedule = scheduleService.findById(id);
-        ScheduleResponse response = scheduleMapper.toResponse(schedule);
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(scheduleService.findById(id));
     }
 
     @PutMapping("/{id}")
@@ -121,8 +113,7 @@ public class ScheduleController {
     })
     public ResponseEntity<ScheduleResponse> update(@PathVariable Long id,
                                                    @Valid @RequestBody ScheduleUpdateRequest request) {
-        Schedule schedule = scheduleService.update(id, request);
-        return ResponseEntity.ok().body(scheduleMapper.toResponse(schedule));
+        return ResponseEntity.ok().body(scheduleService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -162,8 +153,6 @@ public class ScheduleController {
             @RequestParam(name = "courseId", required = false) @Positive Long courseId,
             @RequestParam(name = "teacherId", required = false) @Positive Long teacherId,
             @PageableDefault(size = 10, sort = {"startsAt", "id"}) Pageable pageable) {
-        Page<Schedule> schedules = scheduleService.findAll(groupId, courseId, teacherId, pageable);
-        Page<ScheduleResponse> responsePage = schedules.map(schedule -> scheduleMapper.toResponse(schedule));
-        return new PagedModel<>(responsePage);
+        return new PagedModel<>(scheduleService.findAll(groupId, courseId, teacherId, pageable));
     }
 }

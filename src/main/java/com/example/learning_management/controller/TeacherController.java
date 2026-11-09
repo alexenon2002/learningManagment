@@ -4,11 +4,8 @@ package com.example.learning_management.controller;
 import com.example.learning_management.dto.teacher.TeacherCreateRequest;
 import com.example.learning_management.dto.teacher.TeacherResponse;
 import com.example.learning_management.dto.teacher.TeacherUpdateRequest;
-import com.example.learning_management.entity.Teacher;
-import com.example.learning_management.mapper.TeacherMapper;
 import com.example.learning_management.service.TeacherService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -31,11 +28,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 @RequestMapping("/teachers")
 public class TeacherController {
 
-    private final TeacherMapper teacherMapper;
     private final TeacherService teacherService;
 
-    public TeacherController(TeacherMapper teacherMapper, TeacherService teacherService) {
-        this.teacherMapper = teacherMapper;
+    public TeacherController(TeacherService teacherService) {
         this.teacherService = teacherService;
     }
 
@@ -53,8 +48,7 @@ public class TeacherController {
     })
     @ResponseStatus(HttpStatus.CREATED)
     public TeacherResponse create(@Valid @RequestBody TeacherCreateRequest request) {
-        Teacher teacher = teacherService.create(request);
-        return teacherMapper.toResponse(teacher);
+        return teacherService.create(request);
     }
 
     @GetMapping("/{id}")
@@ -72,8 +66,7 @@ public class TeacherController {
             )
     })
     public ResponseEntity<TeacherResponse> getById(@PathVariable Long id) {
-        Teacher teacher = teacherService.findById(id);
-        return ResponseEntity.ok(teacherMapper.toResponse(teacher));
+        return ResponseEntity.ok(teacherService.findById(id));
     }
 
 
@@ -97,8 +90,7 @@ public class TeacherController {
     })
     public ResponseEntity<TeacherResponse> update
             (@PathVariable Long id, @Valid @RequestBody TeacherUpdateRequest request) {
-        Teacher teacher = teacherService.update(id, request);
-        return ResponseEntity.ok(teacherMapper.toResponse(teacher));
+        return ResponseEntity.ok(teacherService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -138,10 +130,7 @@ public class TeacherController {
     public PagedModel<TeacherResponse> findAll(@RequestParam(name = "name", required = false) String name,
                                                @RequestParam(name = "surname", required = false) String surname,
                                                @PageableDefault(size = 10, sort = "id") Pageable pageable) {
-        Page<Teacher> teachers = teacherService.findAll(name, surname, pageable);
-        Page<TeacherResponse> responsePage = teachers
-                .map(teacher -> teacherMapper.toResponse(teacher));
-        return new PagedModel<>(responsePage);
+        return new PagedModel<>(teacherService.findAll(name, surname, pageable));
     }
 }
 
